@@ -20,13 +20,15 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup Java 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
 
-      - name: Accept Android SDK Licenses
-        run: yes | sdkmanager --licenses
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v4
+        with:
+          packages: ''
 
       - name: Install Android SDK
         run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
@@ -50,6 +52,3 @@ jobs:
           name: AI3DStoryStudio-debug-apk
           path: AI3DStoryStudio/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
-
-
-       
