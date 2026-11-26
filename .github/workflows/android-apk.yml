@@ -35,6 +35,8 @@ jobs:
         with:
           gradle-version: '8.9'
 
+  - name: Extract Android project
+        run: unzip -q AI3DStoryStudio_GitHub_Actions_Build.zip
       - name: Build APK
         run: |
           cd AI3DStoryStudio
