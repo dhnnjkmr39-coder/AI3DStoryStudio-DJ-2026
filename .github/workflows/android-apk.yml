@@ -37,7 +37,8 @@ jobs:
 
   - name: Extract Android project
         run: unzip -q AI3DStoryStudio_GitHub_Actions_Build.zip
-      - name: Build APK
+        
+    - name: Build APK
         run: |
           cd AI3DStoryStudio
           gradle --no-daemon :app:assembleDebug
