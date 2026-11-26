@@ -45,7 +45,7 @@ jobs:
         run: |
           sed -i 's/JavaVersion.VERSION_1_8/JavaVersion.VERSION_17/g' AI3DStoryStudio/app/build.gradle.kts
 
-            - name: Check JVM Settings
+      - name: Check JVM Settings
         run: |
           grep -RInE 'jvmTarget|sourceCompatibility|targetCompatibility|VERSION_1_8|VERSION_17' AI3DStoryStudio --include='*.gradle' --include='*.gradle.kts' || true
       
