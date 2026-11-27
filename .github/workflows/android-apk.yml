@@ -50,6 +50,11 @@ jobs:
         run: |
           echo "---- Backend references in Android project ----"
           grep -RniE 'Secure Backend|Backend HTTPS|aiEndpoint|backendUrl|backend_url|SharedPreferences|AlertDialog|EditText|prompt\(' AI3DStoryStudio/app/src/main || true
+
+      - name: Set Android Java compatibility to 17
+        run:
+          echo "---- Full HTML source (lines 1-100) ----"
+          nl -ba AI3DStoryStudio/app/src/main/assets/index.html | sed -n '1,100p'
       
       - name: Set Android Java compatibility to 17
         run: |
