@@ -46,6 +46,11 @@ jobs:
             echo "---- Backend URL code search ----"
             grep -RniE 'Secure Backend|Backend HTTPS|prompt\(|localStorage' AI3DStoryStudio/app/src/main/assets || true
       
+      - name: Find backend URL configuration
+        run: |
+          echo "---- Backend references in Android project ----"
+          grep -RniE 'Secure Backend|Backend HTTPS|aiEndpoint|backendUrl|backend_url|SharedPreferences|AlertDialog|EditText|prompt\(' AI3DStoryStudio/app/src/main || true
+      
       - name: Set Android Java compatibility to 17
         run: |
           cat >> AI3DStoryStudio/app/build.gradle.kts <<'EOF'
