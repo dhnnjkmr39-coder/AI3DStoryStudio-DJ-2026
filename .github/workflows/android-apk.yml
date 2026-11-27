@@ -41,9 +41,16 @@ jobs:
       - name: Extract Android project
         run: unzip -q AI3DStoryStudio_GitHub_Actions_Build.zip
 
-      - name: Fix Java Kotlin Version
+      
+      - name: Force Java compiler target to 17
         run: |
-          sed -i 's/JavaVersion.VERSION_1_8/JavaVersion.VERSION_17/g' AI3DStoryStudio/app/build.gradle.kts
+          cat >> AI3DStoryStudio/app/build.gradle.kts <<'EOF'
+
+          tasks.withType<org.gradle.api.tasks.compile.JavaCompile>().configureEach {
+              sourceCompatibility = "17"
+              targetCompatibility = "17"
+          }
+          EOF
 
       - name: Check JVM Settings
         run: |
