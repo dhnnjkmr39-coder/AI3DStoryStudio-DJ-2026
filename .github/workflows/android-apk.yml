@@ -70,6 +70,47 @@ jobs:
 
           if 'type="hidden" value="https://ai-3d-story-studio.dhnnjkmr39.workers.dev/generate"' not in s:
               raise SystemExit("Backend field replacement failed")
+                    # Add separate copy buttons for every prompt category
+          toolbar = '<div id="copyTools" class="actions" style="flex-wrap:wrap;margin-top:12px"></div>'
+          anchor = '<div class="actions"><button class="btn primary" onclick="generatePrompt()">'
+          if anchor not in s:
+              raise SystemExit("Copy button location not found")
+          s = s.replace(anchor, toolbar + anchor, 1)
+
+          # Require fixed headings in AI output so each section can be copied separately
+          old_labels = "Include scene-by-scene narration, dialogue, image prompts, video prompts and sound design."
+          new_labels = "REQUIRED OUTPUT LABELS: Put each label on its own line exactly as follows: CHARACTER REFERENCE IMAGE PROMPT: (repeat separately for every character), IMAGE PROMPT: (repeat for every scene), VIDEO PROMPT: (repeat for every scene), NARRATION: (repeat for every scene), DIALOGUE: (repeat for every scene). Keep each section separate; never combine narration and dialogue or image and video prompts."
+          if old_labels not in s:
+              raise SystemExit("AI output instruction not found")
+          s = s.replace(old_labels, new_labels, 1)
+
+          # Add the copy system
+          helper = r"""
+            function copySectionText(text,label){
+             if(!text){toast('Nothing to copy');return}
+              if(window.AndroidBridge&&AndroidBridge.copyText){
+                         AndroidBridge.copyText(text);toast(label+' copied');return
+                        root.appendChild(one);
+                                     });
+                                           });
+                                                 }
+                                                       """
+          marker = "function downloadTxt(){"
+          if marker not in s:
+              raise SystemExit("JavaScript insertion point not found")
+          s = s.replace(marker, helper + "\n" + marker, 1)
+
+          # Refresh copy buttons whenever new output is generated
+          if "generated=out;$('output')" not in s:
+              raise SystemExit("Master prompt output line not found")
+          s = s.replace("generated=out;$('output')", "generated=out;renderCopyTools();$('output')", 1)
+
+          if "generated=result;$('output')" not in s:
+              raise SystemExit("AI output line not found")
+          s = s.replace("generated=result;$('output')", "generated=result;renderCopyTools();$('output')", 1)
+
+          # Clear old copy buttons when workspace is reset
+          s = s.replace("generated='';$('output')", "generated='';renderCopyTools();$('output')", 1)
           p.write_text(s, encoding="utf-8")
           print("Backend and character defaults updated.")
           PY
@@ -93,7 +134,7 @@ jobs:
         run: |
           cat >> AI3DStoryStudio/app/build.gradle.kts <<'EOF'
 
-          android {
+                   android {
               compileOptions {
                   sourceCompatibility = JavaVersion.VERSION_17
                   targetCompatibility = JavaVersion.VERSION_17
