@@ -59,6 +59,13 @@ jobs:
               "const endpoint=val('aiEndpoint');",
               "const endpoint=val('aiEndpoint','https://ai-3d-story-studio.dhnnjkmr39.workers.dev/generate');"
           )
+          
+          old_payload = "const payload=JSON.stringify(collectAiBrief());AndroidBridge.callAiBackend(endpoint,payload)"
+          new_payload = "const brief=collectAiBrief();const prompt='You are an expert cinematic story production assistant. Create a complete scene-by-scene production blueprint with narration, image prompts, video prompts and sound design. Maintain strict character and voice consistency. Use this project brief:\\n'+JSON.stringify(brief,null,2);const payload=JSON.stringify({...brief,prompt});AndroidBridge.callAiBackend(endpoint,payload)"
+          if old_payload not in s:
+              raise SystemExit("AI payload code not found")
+          s = s.replace(old_payload, new_payload)
+
           if 'type="hidden" value="https://ai-3d-story-studio.dhnnjkmr39.workers.dev/generate"' not in s:
               raise SystemExit("Backend field replacement failed")
           p.write_text(s, encoding="utf-8")
