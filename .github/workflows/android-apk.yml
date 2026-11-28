@@ -197,15 +197,15 @@ jobs:
       
       - name: Find backend URL configuration
         run: |
-         echo "---- Aspect Ratio references ----"
+          echo "---- Aspect Ratio references ----"
           grep -RniE '16:9|9:16|aspectRatio|aspect-ratio|ratio' AI3DStoryStudio/app/src/main/assets || true
           echo "---- Backend references in Android project ----"
           grep -RniE 'Secure Backend|Backend HTTPS|aiEndpoint|backendUrl|backend_url|SharedPreferences|AlertDialog|EditText|prompt\(' AI3DStoryStudio/app/src/main || true
           echo "---- AI Brief and Ratio Function ----"
           grep -n -A35 -B5 'collectAiBrief' AI3DStoryStudio/app/src/main/assets/index.html || true
-          echo "---- Full AI Generation Functions ----"
-          grep -n -A100 'function generatePrompt' AI3DStoryStudio/app/src/main/assets/index.html || true
-
+          echo "---- Ratio and AI Request Code ----"
+          grep -oE '.{0,100}(ratio|aspect|collectAiBrief|fetch\().{0,180}' AI3DStoryStudio/app/src/main/assets/index.html | head -40 || true
+     
       - name: Set Android Java compatibility to 17
         run: |
           echo "---- Full HTML source (lines 1-100) ----"
