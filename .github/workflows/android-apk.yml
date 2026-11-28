@@ -197,6 +197,8 @@ jobs:
       
       - name: Find backend URL configuration
         run: |
+         echo "---- Aspect Ratio references ----"
+          grep -RniE '16:9|9:16|aspectRatio|aspect-ratio|ratio' AI3DStoryStudio/app/src/main/assets || true
           echo "---- Backend references in Android project ----"
           grep -RniE 'Secure Backend|Backend HTTPS|aiEndpoint|backendUrl|backend_url|SharedPreferences|AlertDialog|EditText|prompt\(' AI3DStoryStudio/app/src/main || true
 
