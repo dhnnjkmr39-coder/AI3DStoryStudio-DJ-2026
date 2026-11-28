@@ -198,6 +198,143 @@ jobs:
           p.write_text(s, encoding="utf-8")
           print("Backend and character defaults updated.")
           PY
+
+      
+      - name: Add scene image generation
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          root=Path("AI3DStoryStudio/app/src/main")
+          h=root/"assets/index.html"; s=h.read_text(encoding='utf-8')
+          anchor='<p class="foot">AI 3D STORY STUDIO (DJ) · CREATE WITH CONSISTENCY · VERSION 1.1</p>'
+          section='''<section class="card" id="sceneImageCard"><div class="cardhead"><div class="num">07</div><div><h2>Scene Image Generator</h2><p class="hint">Generate one image for every scene, in order, using your selected aspect ratio</p></div></div><button class="btn primary" id="generateSceneImagesBtn" onclick="generateAllSceneImages()">✦ GENERATE ALL SCENE IMAGES</button><p class="hint" id="imageProgress" aria-live="polite">Generate the Master TXT first, then create your scene images.</p><div id="sceneImageGallery" class="scene-image-gallery"></div></section>'''
+          if 'id="sceneImageCard"' not in s:
+              if anchor not in s: raise SystemExit('HTML gallery insertion anchor not found')
+              s=s.replace(anchor,section+'\n'+anchor,1)
+          css='''\n.scene-image-gallery{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:12px;margin-top:14px}.scene-image-item{background:#091321;border:1px solid var(--line);border-radius:12px;padding:9px;min-width:0}.scene-image-item img{display:block;width:100%;aspect-ratio:1/1;object-fit:contain;background:#050a12;border-radius:8px}.scene-image-item p{font-size:12px;color:var(--muted);margin:8px 0}.scene-image-item button{width:100%;margin-top:4px}.scene-image-gallery:empty{display:none}\n'''
+          if '.scene-image-gallery{' not in s:
+              s=s.replace('</style>',css+'</style>',1)
+          marker='function downloadTxt(){'
+          js=r'''let imageRequestResolver=null;
+          function extractSceneImagePrompts(text){
+           const re=/(?:^|\n)\s*IMAGE PROMPT:\s*([\s\S]*?)(?=\n\s*(?:VIDEO(?:\s*\/\s*MOTION)?\s*PROMPT|SOUND DESIGN|NARRATION|VOICEOVER|DIALOGUE|SCENE\s+\d+|6\.\s*EDITING|END OF MASTER PROMPT)\s*:?\s*|$)/gi;
+           return [...text.matchAll(re)].map(m=>m[1].trim()).filter(Boolean);
+          }
+          window.onImageBackendResult=function(ok,response){if(!imageRequestResolver)return;const done=imageRequestResolver;imageRequestResolver=null;done({ok,response});};
+          function requestSceneImage(prompt){return new Promise((resolve,reject)=>{if(!window.AndroidBridge||!AndroidBridge.callImageBackend){reject(new Error('Image generation is available in the Android app.'));return;}imageRequestResolver=resolve;try{AndroidBridge.callImageBackend(JSON.stringify({prompt}));}catch(e){imageRequestResolver=null;reject(e);}});}
+          async function generateAllSceneImages(){
+           if(!generated||!generated.trim()){toast('Generate the Master TXT first');return;}
+           const prompts=extractSceneImagePrompts(generated);
+           if(!prompts.length){toast('No IMAGE PROMPT sections found in the generated text');$('imageProgress').textContent='The output must contain a separate IMAGE PROMPT: for each scene.';return;}
+           const button=$('generateSceneImagesBtn');button.disabled=true;$('sceneImageGallery').innerHTML='';
+           const gallery=$('sceneImageGallery');let completed=0;
+           $('imageProgress').textContent='Preparing '+prompts.length+' scene images. Images are generated one at a time.';
+           try{
+            for(let i=0;i<prompts.length;i++){
+             $('imageProgress').textContent='Generating scene image '+(i+1)+' of '+prompts.length+'…';
+             const fullPrompt=prompts[i]+'\n\nMANDATORY OUTPUT FRAME: '+ratio+'. Visual style and character appearance must remain consistent with the other scenes. No watermark, no captions, no random text.';
+             const result=await requestSceneImage(fullPrompt);
+             if(!result.ok)throw new Error(String(result.response).slice(0,240));
+             const data=JSON.parse(result.response);
+             const dataUri=data.dataURI||data.image||data.imageData;
+             if(!data.success||typeof dataUri!=='string'||!dataUri.startsWith('data:image/'))throw new Error(data.error||'Image server returned no valid image.');
+             const card=document.createElement('div');card.className='scene-image-item';
+             const img=document.createElement('img');img.alt='Generated image for scene '+(i+1);img.src=dataUri;
+             const label=document.createElement('p');label.textContent='Scene '+String(i+1).padStart(2,'0');
+             const save=document.createElement('button');save.className='btn secondary';save.textContent='↓ Save Image';
+             save.onclick=()=>{if(window.AndroidBridge&&AndroidBridge.saveImageFile){AndroidBridge.saveImageFile('AI3D_Scene_'+String(i+1).padStart(2,'0')+'.jpg',dataUri);}else{const a=document.createElement('a');a.href=dataUri;a.download='AI3D_Scene_'+String(i+1).padStart(2,'0')+'.jpg';a.click();}};
+             card.appendChild(img);card.appendChild(label);card.appendChild(save);gallery.appendChild(card);completed++;
+            }
+            $('imageProgress').textContent='Complete: '+completed+' of '+prompts.length+' scene images generated. Save each image below.';toast('All scene images generated');
+           }catch(e){$('imageProgress').textContent='Stopped after '+completed+' image(s): '+(e.message||'Image generation failed')+'. Tap Generate All to try again.';toast('Image generation stopped');}
+           finally{button.disabled=false;}
+          }
+          '''
+          if 'function generateAllSceneImages()' not in s:
+              if marker not in s: raise SystemExit('HTML JavaScript insertion anchor not found')
+              s=s.replace(marker,js+'\n'+marker,1)
+          h.write_text(s,encoding='utf-8')
+
+          k=root/"java/com/example/ai3dstorystudio/MainActivity.kt"; t=k.read_text(encoding='utf-8')
+          if 'import android.util.Base64' not in t: t=t.replace('import android.widget.Toast','import android.widget.Toast\nimport android.util.Base64',1)
+          if 'private var pendingImageBytes' not in t: t=t.replace('private var pendingText: String = ""','private var pendingText: String = ""\n    private var pendingImageBytes: ByteArray = byteArrayOf()',1)
+          launcher='''\n    private val createImageFile = registerForActivityResult(
+          ActivityResultContracts.CreateDocument("image/jpeg")
+           ) { uri ->
+           if (uri != null) {
+            try {
+                contentResolver.openOutputStream(uri)?.use { it.write(pendingImageBytes) }
+                Toast.makeText(this, "Image saved", Toast.LENGTH_SHORT).show()
+            } catch (_: Exception) {
+                Toast.makeText(this, "Could not save image", Toast.LENGTH_SHORT).show()
+            }
+            }
+           pendingImageBytes = byteArrayOf()
+           }
+           '''
+          if 'private val createImageFile' not in t:
+              pos=t.find('\n    private val openImage')
+              if pos<0: raise SystemExit('Kotlin launcher insertion anchor not found')
+              t=t[:pos]+launcher+t[pos:]
+          methods='''\n        @JavascriptInterface fun saveImageFile(filename: String, dataUri: String) {
+            try {
+                val encoded = dataUri.substringAfter(",", "")
+                if (!dataUri.startsWith("data:image/") || encoded.isBlank() || encoded.length > 18_000_000) {
+                    runOnUiThread { Toast.makeText(this@MainActivity, "Invalid or oversized image", Toast.LENGTH_SHORT).show() }
+                    return
+                }
+                val bytes = Base64.decode(encoded, Base64.DEFAULT)
+                if (bytes.isEmpty() || bytes.size > 12_000_000) throw IllegalArgumentException("Image is too large")
+                runOnUiThread {
+                    pendingImageBytes = bytes
+                    val safe = filename.replace(Regex("[^a-zA-Z0-9._-]"), "_").ifBlank { "AI3D_Scene.jpg" }
+                    createImageFile.launch(if (safe.endsWith(".jpg", true) || safe.endsWith(".jpeg", true)) safe else "$safe.jpg")
+                }
+            } catch (_: Exception) {
+                runOnUiThread { Toast.makeText(this@MainActivity, "Could not prepare image", Toast.LENGTH_SHORT).show() }
+            }
+            }
+           @JavascriptInterface fun callImageBackend(payload: String) {
+            val endpoint = "https://ai-3d-story-studio.dhnnjkmr39.workers.dev/generate-image"
+            if (payload.length > 100_000) {
+                runOnUiThread { webView.evaluateJavascript("window.onImageBackendResult && window.onImageBackendResult(false, 'Image prompt is too large.')", null) }
+                return
+            }
+            Thread {
+                var connection: HttpURLConnection? = null
+                try {
+                    connection = (URL(endpoint).openConnection() as HttpURLConnection).apply {
+                        requestMethod = "POST"
+                        connectTimeout = 30000
+                        readTimeout = 180000
+                        doOutput = true
+                        setRequestProperty("Content-Type", "application/json; charset=utf-8")
+                        setRequestProperty("Accept", "application/json")
+                    }
+                    connection.outputStream.use { it.write(payload.toByteArray(Charsets.UTF_8)) }
+                    val status = connection.responseCode
+                    val stream = if (status in 200..299) connection.inputStream else connection.errorStream
+                    val response = stream?.bufferedReader(Charsets.UTF_8)?.use { it.readText().take(15_000_000) } ?: ""
+                    val ok = status in 200..299
+                    val jsResponse = JSONObject.quote(response.ifBlank { "HTTP $status" })
+                    runOnUiThread { webView.evaluateJavascript("window.onImageBackendResult && window.onImageBackendResult(${if (ok) "true" else "false"}, $jsResponse)", null) }
+                } catch (e: Exception) {
+                    val message = JSONObject.quote(e.message ?: "Image network request failed")
+                    runOnUiThread { webView.evaluateJavascript("window.onImageBackendResult && window.onImageBackendResult(false, $message)", null) }
+                } finally {
+                    connection?.disconnect()
+                }
+            }.start()
+           }
+          '''
+          if 'fun callImageBackend(payload: String)' not in t:
+              anchor='''        @JavascriptInterface fun callAiBackend(endpoint: String, payload: String) {'''
+              if anchor not in t: raise SystemExit('Kotlin bridge insertion anchor not found')
+              t=t.replace(anchor,methods+'\n'+anchor,1)
+          k.write_text(t,encoding='utf-8')
+          print('PATCH_OK')
+          PY
         
       - name: Find backend URL prompt
         run: |
