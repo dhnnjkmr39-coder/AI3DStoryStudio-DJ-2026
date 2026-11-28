@@ -232,6 +232,14 @@ jobs:
         run: |
           grep -RInE 'jvmTarget|sourceCompatibility|targetCompatibility|VERSION_1_8|VERSION_17' AI3DStoryStudio --include='*.gradle' --include='*.gradle.kts' || true
       
+      - name: Inspect Android Bridge
+        run: |
+          echo "---- Android Java/Kotlin files ----"
+          find AI3DStoryStudio/app/src/main -type f \( -name '*.java' -o -name '*.kt' \) -print
+
+          echo "---- AndroidBridge implementation ----"
+          grep -RniE 'AndroidBridge|callAiBackend|no API key|API key|GEMINI_API_KEY' AI3DStoryStudio/app/src/main --include='*.java' --include='*.kt' --include='*.html' || true
+     
       - name: Build APK
         run: |
           cd AI3DStoryStudio
