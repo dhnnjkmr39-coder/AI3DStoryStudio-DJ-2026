@@ -241,6 +241,8 @@ jobs:
           grep -RniE 'AndroidBridge|callAiBackend|no API key|API key|GEMINI_API_KEY' AI3DStoryStudio/app/src/main --include='*.java' --include='*.kt' --include='*.html' || true
           echo "---- MainActivity.kt full code ----"
           nl -ba AI3DStoryStudio/app/src/main/java/com/example/ai3dstorystudio/MainActivity.kt | sed -n '1,180p'
+          echo "---- AI backend response handler ----"
+          grep -n -A 35 -B 5 'onAiBackendResult' AI3DStoryStudio/app/src/main/assets/index.html || true
      
       - name: Build APK
         run: |
