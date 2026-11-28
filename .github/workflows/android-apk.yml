@@ -84,17 +84,74 @@ jobs:
               raise SystemExit("AI output instruction not found")
           s = s.replace(old_labels, new_labels, 1)
 
-          # Add the copy system
-          helper = r"""
-            function copySectionText(text,label){
-             if(!text){toast('Nothing to copy');return}
-              if(window.AndroidBridge&&AndroidBridge.copyText){
-                         AndroidBridge.copyText(text);toast(label+' copied');return
-                        root.appendChild(one);
-                                     });
-                                           });
-                                                 }
-                                                       """
+                   helper = r"""
+                     function copySectionText(text,label){
+                  if(!text){toast('Nothing to copy');return}
+                   if(window.AndroidBridge&&AndroidBridge.copyText){
+                    AndroidBridge.copyText(text);toast(label+' copied');return;
+                    }
+                     const t=document.createElement('textarea');
+                    t.value=text;document.body.appendChild(t);t.select();
+                    document.execCommand('copy');t.remove();toast(label+' copied');
+                    }
+
+           function renderCopyTools(){
+            const root=$('copyTools');
+           if(!root)return;
+            root.innerHTML='';
+           if(!generated||!generated.trim())return;
+
+          const kinds=[
+          {key:'character',label:'Character Prompt',pattern:/CHARACTER REFERENCE IMAGE PROMPT|CHARACTER PROMPT/i},
+          {key:'image',label:'Image Prompt',pattern:/IMAGE PROMPT/i},
+          {key:'video',label:'Video Prompt',pattern:/VIDEO PROMPT/i},
+          {key:'narration',label:'Narration',pattern:/NARRATION|VOICEOVER/i},
+          {key:'dialogue',label:'Dialogue',pattern:/DIALOGUE|SPOKEN LINES/i}
+          ];
+
+          const blocks=[];
+          let current=null;
+
+          generated.split(/\r?\n/).forEach(line=>{
+          const clean=line.replace(/\*\*/g,'').trim();
+          const kind=kinds.find(k=>k.pattern.test(clean));
+          if(kind){
+          current={key:kind.key,label:kind.label,text:line};
+          blocks.push(current);
+          }else if(current){
+          current.text+='\n'+line;
+          }
+          });
+
+          if(!blocks.length){
+          root.textContent='Separate copy buttons will appear when AI output contains the required headings.';
+          return;
+           }
+
+          kinds.forEach(kind=>{
+          const group=blocks.filter(b=>b.key===kind.key);
+          if(!group.length)return;
+
+          const all=document.createElement('button');
+          all.className='btn secondary';
+          all.textContent='Copy All '+kind.label+'s';
+          all.onclick=()=>copySectionText(
+          group.map(b=>b.text).join('\n\n'),kind.label
+          );
+          root.appendChild(all);
+
+          group.forEach((block,index)=>{
+          const one=document.createElement('button');
+          one.className='btn secondary';
+          one.textContent='Copy '+kind.label+' '+(index+1);
+          one.onclick=()=>copySectionText(
+          block.text,kind.label+' '+(index+1)
+          );
+          root.appendChild(one);
+          });
+          });
+          }
+          """
           marker = "function downloadTxt(){"
           if marker not in s:
               raise SystemExit("JavaScript insertion point not found")
