@@ -41,6 +41,15 @@ jobs:
       - name: Extract Android project
         run: unzip -q AI3DStoryStudio_GitHub_Actions_Build.zip
 
+      - name: Export source files for inspection
+        uses: actions/upload-artifact@v4
+        with:
+          name: AI3DStoryStudio-source-inspection
+          path: |
+            AI3DStoryStudio/app/src/main/assets/index.html
+            AI3DStoryStudio/app/src/main/java/com/example/ai3dstorystudio/MainActivity.kt
+          if-no-files-found: error  
+
       - name: Fix backend and character defaults
         run: |
           python3 - <<'PY'
