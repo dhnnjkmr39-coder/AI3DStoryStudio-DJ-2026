@@ -47,6 +47,24 @@ jobs:
           from pathlib import Path
           p = Path("AI3DStoryStudio/app/src/main/assets/index.html")
           s = p.read_text(encoding="utf-8")
+                    # Hide manual age and appearance fields; let AI infer them from the story
+          old_age = '<div class="grid"><div class="field"><label>CHARACTER NAME</label><input id="charName" placeholder="e.g. Ashwatthama"></div><div class="field"><label>AGE / AGE RANGE</label><input id="charAge" placeholder="e.g. 35 years"></div></div>'
+          new_age = '<div class="field"><label>CHARACTER NAME</label><input id="charName" placeholder="e.g. Ashwatthama"></div><input id="charAge" type="hidden" value="Automatically determine a suitable age from the story">'
+          if old_age not in s:
+              raise SystemExit("Character age field not found")
+          s = s.replace(old_age, new_age, 1)
+
+          old_appearance = '<div class="field"><label>FIXED PHYSICAL APPEARANCE & COSTUME</label><textarea id="appearance" style="min-height:75px" placeholder="Face, hair, body build, costume, colors, accessories..."></textarea></div>'
+          new_appearance = '<input id="appearance" type="hidden" value="Automatically create a detailed character appearance and costume from the story, then keep it identical in every scene">'
+          if old_appearance not in s:
+              raise SystemExit("Character appearance field not found")
+          s = s.replace(old_appearance, new_appearance, 1)
+
+          s = s.replace(
+              "document.querySelectorAll('input:not([type=checkbox]),textarea').forEach(e=>e.value='');",
+              "document.querySelectorAll('input:not([type=checkbox]),textarea').forEach(e=>e.value='');$('charAge').value='Automatically determine a suitable age from the story';$('appearance').value='Automatically create a detailed character appearance and costume from the story, then keep it identical in every scene';",
+              1
+          )
           s = s.replace(
               '<div class="field"><label>SECURE BACKEND HTTPS URL</label><input id="aiEndpoint" type="url" placeholder="https://your-secure-server.example/generate"></div>',
               '<input id="aiEndpoint" type="hidden" value="https://ai-3d-story-studio.dhnnjkmr39.workers.dev/generate">'
