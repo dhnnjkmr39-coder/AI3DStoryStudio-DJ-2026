@@ -206,7 +206,7 @@ jobs:
           echo "---- Ratio and AI Request Code ----"
           grep -oE '.{0,100}(ratio|aspect|collectAiBrief|fetch\().{0,180}' AI3DStoryStudio/app/src/main/assets/index.html | head -40 || true
           echo "---- Generate Function Ending and AI Request ----"
-          grep -n -oE '.{0,100}(generatePrompt|collectAiBrief|JSON.stringify|fetch\\(|/generate|aspectRatio|ratio).{0,200}' AI3DStoryStudio/app/src/main/assets/index.html | tail -30 || true
+          grep -n -oE 'generatePrompt|collectAiBrief|JSON.stringify|fetch|/generate|aspectRatio|ratio' AI3DStoryStudio/app/src/main/assets/index.html | tail -40 || true
      
       - name: Set Android Java compatibility to 17
         run: |
