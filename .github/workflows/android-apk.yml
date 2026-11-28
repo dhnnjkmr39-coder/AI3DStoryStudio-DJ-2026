@@ -84,7 +84,7 @@ jobs:
               raise SystemExit("AI output instruction not found")
           s = s.replace(old_labels, new_labels, 1)
 
-                   helper = r"""
+          helper = r"""
                      function copySectionText(text,label){
                   if(!text){toast('Nothing to copy');return}
                    if(window.AndroidBridge&&AndroidBridge.copyText){
